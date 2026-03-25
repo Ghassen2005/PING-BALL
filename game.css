@@ -1,0 +1,158 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 30px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    color: #ffd93d;
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    text-shadow: 3px 3px 0 #ff6b6b;
+}
+
+.score-board {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    margin-bottom: 20px;
+}
+
+.score {
+    background: #0f0f1f;
+    padding: 15px 35px;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.player-label, .ai-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.player-label {
+    color: #4ecdc4;
+}
+
+.ai-label {
+    color: #ff6b6b;
+}
+
+.score span:last-child {
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    align-items: center;
+}
+
+.controls label {
+    color: white;
+    font-size: 1rem;
+}
+
+select, button {
+    padding: 8px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+select {
+    background: #2c3e66;
+    color: white;
+}
+
+select:hover {
+    background: #3e5a8f;
+}
+
+button {
+    background: #ff6b6b;
+    color: white;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #ff5252;
+    transform: scale(1.05);
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    background: #0a0a1a;
+}
+
+.info {
+    margin-top: 20px;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.info p {
+    margin: 5px 0;
+}
+
+.winner-message {
+    margin-top: 15px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 10px;
+    animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 900px) {
+    canvas {
+        width: 100%;
+        height: auto;
+    }
+    
+    .score-board {
+        gap: 30px;
+    }
+    
+    .score {
+        padding: 10px 20px;
+    }
+    
+    .score span:last-child {
+        font-size: 2rem;
+    }
+}

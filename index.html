@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pong Game - AI Battle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* خلفية متحركة */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(78, 205, 196, 0.1), transparent 50%);
+            pointer-events: none;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 217, 61, 0.3);
+        }
+
+        /* لوحة النقاط */
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, rgba(15, 15, 31, 0.9), rgba(0, 0, 0, 0.8));
+            padding: 12px 25px;
+            border-radius: 60px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 120px;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .player-label { color: #4ecdc4; }
+        .ai-label { color: #ff6b6b; }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .player-value { color: #4ecdc4; text-shadow: 0 0 10px #4ecdc4; }
+        .ai-value { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }
+
+        /* Canvas */
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.2);
+            cursor: none;
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+        }
+
+        /* أزرار التحكم */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #2c3e66, #1a1f3a);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        }
+
+        .btn-danger:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        /* أزرار اللمس للهاتف */
+        .touch-controls {
+            display: none;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .touch-btn {
+            background: rgba(78, 205, 196, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(78, 205, 196, 0.5);
+            border-radius: 60px;
+            padding: 15px 35px;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .touch-btn:active {
+            transform: scale(0.95);
+            background: rgba(78, 205, 196, 0.4);
+        }
+
+        /* رسالة الفائز */
+        .winner-message {
+            margin-top: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 60px;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 5px currentColor; }
+            to { text-shadow: 0 0 20px currentColor; }
+        }
+
+        /* شاشة البداية */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .start-card {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .start-card h2 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .start-card p {
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.6);
+        }
+
+        .info-text {
+            margin-top: 15px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        /* استجابة للهواتف */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            .score-card {
+                padding: 8px 15px;
+                min-width: 90px;
+            }
+            
+            .score-value {
+                font-size: 2rem;
+            }
+            
+            .score-label {
+                font-size: 0.7rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 8px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .touch-controls {
+                display: flex;
+            }
+            
+            .info-text {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .score-board {
+                gap: 15px;
+            }
+            
+            .touch-btn {
+                padding: 12px 25px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- شاشة البداية -->
+<div class="start-screen" id="startScreen">
+    <div class="start-card">
+        <h2>🏓 PONG</h2>
+        <p>Welcome to the battle</p>
+        <button class="start-btn" id="startBtn">▶ ابدأ اللعبة</button>
+        <div class="info-text">
+            🖱️ Move the mouse or use your fingers<br>
+            🎯 first who score 5 points win
+        </div>
+    </div>
+</div>
+
+<div class="game-container" style="opacity: 0; transition: opacity 0.5s ease;">
+    <h1>⚡ PONG BATTLE ⚡</h1>
+    
+    <div class="score-board">
+        <div class="score-card">
+            <div class="score-label player-label">👤 اللاعب</div>
+            <div class="score-value player-value" id="playerScore">0</div>
+        </div>
+        <div class="score-card">
+            <div class="score-label ai-label">🤖 AI</div>
+            <div class="score-value ai-value" id="aiScore">0</div>
+        </div>
+    </div>
+
+    <canvas id="pongCanvas" width="800" height="500"></canvas>
+    
+    <div class="controls">
+        <button class="btn btn-primary" id="restartBtn">🔄 إعادة التشغيل</button>
+    </div>
+
+    <!-- أزرار لمس للهواتف -->
+    <div class="touch-controls">
+        <div class="touch-btn" id="touchUp">▲</div>
+        <div class="touch-btn" id="touchDown">▼</div>
+    </div>
+    
+    <div id="winnerMessage" class="winner-message"></div>
+</div>
+
+<script>
+    // ============= الحصول على العناصر =============
+    const startScreen = document.getElementById('startScreen');
+    const gameContainer = document.querySelector('.game-container');
+    const startBtn = document.getElementById('startBtn');
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+    const playerScoreEl = document.getElementById('playerScore');
+    const aiScoreEl = document.getElementById('aiScore');
+    const restartBtn = document.getElementById('restartBtn');
+    const winnerMessageDiv = document.getElementById('winnerMessage');
+    const touchUp = document.getElementById('touchUp');
+    const touchDown = document.getElementById('touchDown');
+
+    // ============= إعدادات اللعبة =============
+    const WINNING_SCORE = 5;
+    let gameRunning = true;
+    let gameStarted = false;
+    
+    // المضارب
+    const PADDLE_WIDTH = 12;
+    const PADDLE_HEIGHT = 100;
+    const BALL_SIZE = 10;
+    
+    // اللاعب (يمين)
+    let playerY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+    const playerX = canvas.width - 30;
+    
+    // AI (يسار)
+    let aiY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+    const aiX = 18;
+    
+    // الكرة
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballDX = 0;
+    let ballDY = 0;
+    
+    // النقاط
+    let playerScore = 0;
+    let aiScore = 0;
+    
+    // متغيرات التحكم باللمس
+    let touchActive = false;
+    let touchDirection = 0; // -1: up, 1: down
+    
+    // ============= بدء اللعبة =============
+    function startGame() {
+        gameStarted = true;
+        gameRunning = true;
+        startScreen.style.opacity = '0';
+        setTimeout(() => {
+            startScreen.style.display = 'none';
+            gameContainer.style.opacity = '1';
+        }, 500);
+        resetGame();
+        startBall();
+    }
+    
+    function startBall() {
+        ballDX = (Math.random() > 0.5 ? 4 : -4);
+        ballDY = (Math.random() * 5) - 2.5;
+        if (Math.abs(ballDY) < 1.5) ballDY = ballDY > 0 ? 2 : -2;
+    }
+    
+    // ============= التحكم بالماوس =============
+    canvas.addEventListener('mousemove', function(e) {
+        if (!gameStarted || !gameRunning) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleY = canvas.height / rect.height;
+        let mouseY = (e.clientY - rect.top) * scaleY;
+        
+        if (mouseY < 0) mouseY = 0;
+        if (mouseY > canvas.height - PADDLE_HEIGHT) mouseY = canvas.height - PADDLE_HEIGHT;
+        
+        playerY = mouseY;
+    });
+    
+    // ============= التحكم باللمس =============
+    function updateTouchMovement() {
+        if (!gameStarted || !gameRunning) return;
+        
+        if (touchDirection === -1) {
+            playerY -= 12;
+        } else if (touchDirection === 1) {
+            playerY += 12;
+        }
+        
+        playerY = Math.max(0, Math.min(canvas.height - PADDLE_HEIGHT, playerY));
+    }
+    
+    touchUp.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchDirection = -1;
+    });
+    touchUp.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        touchDirection = -1;
+    });
+    
+    touchDown.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchDirection = 1;
+    });
+    touchDown.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        touchDirection = 1;
+    });
+    
+    window.addEventListener('touchend', () => {
+        touchDirection = 0;
+    });
+    window.addEventListener('mouseup', () => {
+        touchDirection = 0;
+    });
+    
+    // ============= حركة AI =============
+    function moveAI() {
+        if (!gameStarted || !gameRunning) return;
+        
+        const ballCenter = ballY + BALL_SIZE / 2;
+        const aiCenter = aiY + PADDLE_HEIGHT / 2;
+        
+        if (ballCenter < aiCenter - 15) {
+            aiY -= 4.5;
+        } else if (ballCenter > aiCenter + 15) {
+            aiY += 4.5;
+        }
+        
+        aiY = Math.max(0, Math.min(canvas.height - PADDLE_HEIGHT, aiY));
+    }
+    
+    // ============= حركة الكرة =============
+    function moveBall() {
+        if (!gameStarted || !gameRunning) return;
+        
+        ballX += ballDX;
+        ballY += ballDY;
+        
+        // اصطدام بالحائط العلوي والسفلي
+        if (ballY <= 0) {
+            ballY = 0;
+            ballDY = -ballDY;
+        }
+        if (ballY + BALL_SIZE >= canvas.height) {
+            ballY = canvas.height - BALL_SIZE;
+            ballDY = -ballDY;
+        }
+        
+        // اصطدام بمضرب اللاعب
+        if (ballX + BALL_SIZE >= playerX && 
+            ballX <= playerX + PADDLE_WIDTH &&
+            ballY + BALL_SIZE >= playerY && 
+            ballY <= playerY + PADDLE_HEIGHT) {
+            
+            ballDX = -ballDX;
+            let hitPos = (ballY + BALL_SIZE/2) - (playerY + PADDLE_HEIGHT/2);
+            hitPos = hitPos / (PADDLE_HEIGHT/2);
+            ballDY = hitPos * 5;
+            ballX = playerX - BALL_SIZE;
+            
+            // تأثير اهتزاز
+            canvas.style.transform = 'translateX(2px)';
+            setTimeout(() => { canvas.style.transform = ''; }, 50);
+        }
+        
+        // اصطدام بمضرب AI
+        if (ballX <= aiX + PADDLE_WIDTH && 
+            ballX + BALL_SIZE >= aiX &&
+            ballY + BALL_SIZE >= aiY && 
+            ballY <= aiY + PADDLE_HEIGHT) {
+            
+            ballDX = -ballDX;
+            let hitPos = (ballY + BALL_SIZE/2) - (aiY + PADDLE_HEIGHT/2);
+            hitPos = hitPos / (PADDLE_HEIGHT/2);
+            ballDY = hitPos * 5;
+            ballX = aiX + PADDLE_WIDTH;
+        }
+        
+        // تسجيل النقاط
+        if (ballX + BALL_SIZE >= canvas.width) {
+            aiScore++;
+            updateScores();
+            checkWinner();
+            if (gameRunning) resetBall();
+        } else if (ballX <= 0) {
+            playerScore++;
+            updateScores();
+            checkWinner();
+            if (gameRunning) resetBall();
+        }
+    }
+    
+    // ============= إعادة تعيين الكرة =============
+    function resetBall() {
+        ballX = canvas.width / 2;
+        ballY = canvas.height / 2;
+        ballDX = (Math.random() > 0.5 ? 4 : -4);
+        ballDY = (Math.random() * 5) - 2.5;
+        if (Math.abs(ballDY) < 1.5) ballDY = ballDY > 0 ? 2 : -2;
+    }
+    
+    // ============= تحديث النقاط =============
+    function updateScores() {
+        playerScoreEl.textContent = playerScore;
+        aiScoreEl.textContent = aiScore;
+    }
+    
+    // ============= فحص الفائز =============
+    function checkWinner() {
+        if (playerScore >= WINNING_SCORE) {
+            gameRunning = false;
+            winnerMessageDiv.innerHTML ='s77a reb7t';
+            winnerMessageDiv.style.color = '#4ecdc4';
+            winnerMessageDiv.style.textShadow = '0 0 10px #4ecdc4';
+        } else if (aiScore >= WINNING_SCORE) {
+            gameRunning = false;
+            winnerMessageDiv.innerHTML = '🤖 💀 5SERT XDD 💀 🤖';
+            winnerMessageDiv.style.color = '#ff6b6b';
+            winnerMessageDiv.style.textShadow = '0 0 10px #ff6b6b';
+        }
+    }
+    
+    // ============= إعادة تشغيل اللعبة =============
+    function resetGame() {
+        gameRunning = true;
+        playerScore = 0;
+        aiScore = 0;
+        playerY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+        aiY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+        updateScores();
+        winnerMessageDiv.innerHTML = '';
+        resetBall();
+    }
+    
+    // ============= رسم اللعبة =============
+    function draw() {
+        // مسح الشاشة
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.95)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // تأثير توهج
+        ctx.shadowBlur = 0;
+        
+        // خطوط زخرفية
+        ctx.setLineDash([15, 20]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // دائرة وسط
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height / 2, 35, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        
+        // مضرب AI
+        const aiGradient = ctx.createLinearGradient(aiX, aiY, aiX + PADDLE_WIDTH, aiY + PADDLE_HEIGHT);
+        aiGradient.addColorStop(0, '#ff6b6b');
+        aiGradient.addColorStop(1, '#ee5a5a');
+        ctx.fillStyle = aiGradient;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ff6b6b';
+        ctx.fillRect(aiX, aiY, PADDLE_WIDTH, PADDLE_HEIGHT);
+        
+        // مضرب اللاعب
+        const playerGradient = ctx.createLinearGradient(playerX, playerY, playerX + PADDLE_WIDTH, playerY + PADDLE_HEIGHT);
+        playerGradient.addColorStop(0, '#4ecdc4');
+        playerGradient.addColorStop(1, '#44a08d');
+        ctx.fillStyle = playerGradient;
+        ctx.shadowColor = '#4ecdc4';
+        ctx.fillRect(playerX, playerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+        
+        // الكرة
+        ctx.fillStyle = '#ffd93d';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffd93d';
+        ctx.fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE);
+        
+        // إضافة توهج حول الكرة
+        ctx.shadowBlur = 0;
+        
+        // عرض النقاط على الملعب
+        ctx.font = 'bold 28px "Segoe UI", monospace';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillText(playerScore, canvas.width - 70, 65);
+        ctx.fillText(aiScore, 45, 65);
+    }
+    
+    // ============= حلقة اللعبة =============
+    function gameLoop() {
+        if (gameStarted) {
+            updateTouchMovement();
+            moveAI();
+            moveBall();
+        }
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // ============= الأحداث =============
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', () => {
+        if (gameStarted) {
+            resetGame();
+        }
+    });
+    
+    // منع التمرير عند الضغط على أزرار اللمس
+    document.querySelectorAll('.touch-btn').forEach(btn => {
+        btn.addEventListener('touchstart', (e) => e.preventDefault());
+    });
+    
+    // بدء الحلقة
+    gameLoop();
+</script>
+</body>
+</html>
